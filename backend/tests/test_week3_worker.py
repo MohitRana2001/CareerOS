@@ -90,6 +90,11 @@ def test_tailor_worker_creates_version_and_is_idempotent(
     assert refreshed_run is not None
     assert refreshed_run.status == "SUCCEEDED"
     assert refreshed_run.output_resume_version_id is not None
+    assert refreshed_run.run_attempt_count == 1
+    assert refreshed_run.ats_keyword_alignment is not None
+    assert refreshed_run.ats_keyword_alignment["alignment_score"] == 100
+    assert refreshed_run.model_trace_metadata is not None
+    assert refreshed_run.model_trace_metadata["provider"] == "gemini"
 
     versions = list(db_session.execute(select(ResumeVersion).where(ResumeVersion.resume_document_id == resume.id)).scalars())
     assert len(versions) == 1

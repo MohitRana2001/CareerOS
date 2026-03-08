@@ -24,6 +24,7 @@ def extract_resume(resume_document_id: str) -> dict[str, str]:
 @celery.task(bind=True, name="tailor_resume", max_retries=3)
 def tailor_resume(self, tailor_run_id: str) -> dict[str, str]:
     run_uuid = uuid.UUID(tailor_run_id)
+    start_time = datetime.now(UTC)
 
     try:
         with SessionLocal() as db:
@@ -41,6 +42,7 @@ def tailor_resume(self, tailor_run_id: str) -> dict[str, str]:
             run.status = "RUNNING"
             run.failure_stage = None
             run.failure_reason = None
+            run.run_attempt_count = (run.run_attempt_count or 0) + 1
             run.updated_at = datetime.now(UTC)
             db.add(run)
             db.commit()
@@ -66,7 +68,6 @@ def tailor_resume(self, tailor_run_id: str) -> dict[str, str]:
             output = generate_tailored_content(prompt, run.model_name)
 
             if run.output_resume_version_id is not None:
-                # Another worker attempt may have already created output.
                 run.status = "SUCCEEDED"
                 run.updated_at = datetime.now(UTC)
                 db.add(run)
@@ -100,7 +101,19 @@ def tailor_resume(self, tailor_run_id: str) -> dict[str, str]:
             db.add(new_version)
             db.flush()
 
+            alignment = _ats_keyword_alignment(jd.extracted_requirements, output.keywords_used)
             run.output_resume_version_id = new_version.id
+            run.ats_keyword_alignment = alignment
+            run.model_trace_metadata = {
+                "provider": "gemini",
+                "model": run.model_name or settings.gemini_default_model,
+                "prompt_version": run.prompt_version,
+                "prompt_chars": len(prompt),
+                "keywords_generated": len(output.keywords_used),
+                "started_at": start_time.isoformat(),
+                "completed_at": datetime.now(UTC).isoformat(),
+                "attempt": run.run_attempt_count,
+            }
             run.status = "SUCCEEDED"
             run.updated_at = datetime.now(UTC)
             db.add(run)
@@ -114,14 +127,14 @@ def tailor_resume(self, tailor_run_id: str) -> dict[str, str]:
 
     except (httpx.HTTPError, GeminiClientError) as exc:
         if self.request.retries < self.max_retries:
-            _mark_run_retrying(run_uuid, str(exc))
+            _mark_run_retrying(run_uuid, str(exc), self.request.retries + 1)
             countdown = 5 * (2**self.request.retries)
             raise self.retry(exc=exc, countdown=countdown)
 
-        _mark_run_failed(run_uuid, "GEMINI", str(exc))
+        _mark_run_failed(run_uuid, "GEMINI", str(exc), self.request.retries + 1)
         return {"status": "FAILED", "tailor_run_id": tailor_run_id, "error": str(exc)}
     except Exception as exc:  # pragma: no cover
-        _mark_run_failed(run_uuid, "WORKER", str(exc))
+        _mark_run_failed(run_uuid, "WORKER", str(exc), self.request.retries + 1)
         return {"status": "FAILED", "tailor_run_id": tailor_run_id, "error": str(exc)}
 
 
@@ -139,7 +152,7 @@ def export_drive(resume_version_id: str, drive_folder_id: str) -> dict[str, str]
     }
 
 
-def _mark_run_retrying(run_id: uuid.UUID, reason: str) -> None:
+def _mark_run_retrying(run_id: uuid.UUID, reason: str, attempt: int) -> None:
     with SessionLocal() as db:
         run = db.get(TailorRun, run_id)
         if run is None:
@@ -147,12 +160,20 @@ def _mark_run_retrying(run_id: uuid.UUID, reason: str) -> None:
         run.status = "PENDING"
         run.failure_stage = "GEMINI"
         run.failure_reason = reason
+        run.model_trace_metadata = {
+            "provider": "gemini",
+            "model": run.model_name or settings.gemini_default_model,
+            "prompt_version": run.prompt_version,
+            "attempt": attempt,
+            "state": "RETRYING",
+            "failed_at": datetime.now(UTC).isoformat(),
+        }
         run.updated_at = datetime.now(UTC)
         db.add(run)
         db.commit()
 
 
-def _mark_run_failed(run_id: uuid.UUID, stage: str, reason: str) -> None:
+def _mark_run_failed(run_id: uuid.UUID, stage: str, reason: str, attempt: int) -> None:
     with SessionLocal() as db:
         run = db.get(TailorRun, run_id)
         if run is None:
@@ -160,6 +181,14 @@ def _mark_run_failed(run_id: uuid.UUID, stage: str, reason: str) -> None:
         run.status = "FAILED"
         run.failure_stage = stage
         run.failure_reason = reason
+        run.model_trace_metadata = {
+            "provider": "gemini",
+            "model": run.model_name or settings.gemini_default_model,
+            "prompt_version": run.prompt_version,
+            "attempt": attempt,
+            "state": "FAILED",
+            "failed_at": datetime.now(UTC).isoformat(),
+        }
         run.updated_at = datetime.now(UTC)
         db.add(run)
         db.commit()
@@ -175,5 +204,24 @@ def _resume_source_text(resume: ResumeDocument, latest_version: ResumeVersion | 
 
 def _to_latex(summary: str, bullets: list[str]) -> str:
     lines = ["% AI-tailored version", f"% Summary: {summary}"]
-    lines.extend([f"\\\\item {bullet}" for bullet in bullets])
-    return "\\n".join(lines)
+    lines.extend([f"\\item {bullet}" for bullet in bullets])
+    return "\n".join(lines)
+
+
+def _ats_keyword_alignment(extracted_requirements: dict | None, generated_keywords: list[str]) -> dict:
+    required_keywords = []
+    if extracted_requirements and isinstance(extracted_requirements.get("keywords"), list):
+        required_keywords = [str(item).lower() for item in extracted_requirements["keywords"]]
+
+    required_set = set(required_keywords)
+    generated_set = {item.lower() for item in generated_keywords}
+    matched = sorted(required_set.intersection(generated_set))
+    missing = sorted(required_set.difference(generated_set))
+    score = 0 if not required_set else round((len(matched) / len(required_set)) * 100)
+
+    return {
+        "required_keywords": sorted(required_set),
+        "matched_keywords": matched,
+        "missing_keywords": missing,
+        "alignment_score": score,
+    }

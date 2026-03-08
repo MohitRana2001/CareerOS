@@ -208,6 +208,20 @@ class TailorRunResponse(StrictModel):
                     "idempotency_key": "acme-backend-20260309",
                     "model_name": "gemini-2.5-pro",
                     "prompt_version": "v1",
+                    "run_attempt_count": 1,
+                    "ats_keyword_alignment": {
+                        "required_keywords": ["python", "fastapi", "postgresql", "redis", "docker", "aws"],
+                        "matched_keywords": ["python", "fastapi", "postgresql", "redis", "docker"],
+                        "missing_keywords": ["aws"],
+                        "alignment_score": 83,
+                    },
+                    "model_trace_metadata": {
+                        "provider": "gemini",
+                        "model": "gemini-2.5-pro",
+                        "prompt_version": "v1",
+                        "prompt_chars": 2140,
+                        "keywords_generated": 5,
+                    },
                     "failure_stage": None,
                     "failure_reason": None,
                     "created_at": "2026-03-09T10:31:00Z",
@@ -224,6 +238,9 @@ class TailorRunResponse(StrictModel):
     idempotency_key: str
     model_name: str | None
     prompt_version: str | None
+    run_attempt_count: int
+    ats_keyword_alignment: dict | None
+    model_trace_metadata: dict | None
     failure_stage: str | None
     failure_reason: str | None
     created_at: datetime
