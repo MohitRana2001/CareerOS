@@ -6,6 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db import get_db
 from app.models import User
 from app.security import AuthError, decode_access_token
@@ -39,7 +40,7 @@ def get_current_user(
     x_dev_user_email: str | None = Header(default=None),
 ) -> User:
     if credentials is None:
-        if x_dev_user_email:
+        if settings.allow_dev_auth_header and x_dev_user_email:
             return _get_or_create_dev_user(db, x_dev_user_email)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing auth token")
 

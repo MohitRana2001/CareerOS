@@ -24,6 +24,8 @@ alembic -c alembic.ini upgrade head
 
 ## Environment
 Copy `.env.example` to `.env` and update values as needed.
+- `GOOGLE_CLIENT_ID` is required for secure Google token verification.
+- `ALLOW_DEV_AUTH_HEADER` should be `false` outside local development.
 
 ## Next Implementation Targets
 1. Auth middleware + user context

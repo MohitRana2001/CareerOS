@@ -1,30 +1,21 @@
 import uuid
-from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.dependencies import get_current_user
-from app.models import Application, ApplicationNote, User
+from app.models import User
 from app.schemas import (
     ApplicationCreateRequest,
     ApplicationNoteRequest,
     ApplicationResponse,
     ApplicationUpdateRequest,
+    MessageResponse,
 )
+from app.services.application_service import ApplicationService
 
 router = APIRouter()
-
-VALID_APPLICATION_STATUSES = {
-    "NOT_APPLIED",
-    "APPLIED",
-    "SCREENING",
-    "INTERVIEW",
-    "OFFER",
-    "REJECTED",
-}
 
 
 @router.post("", response_model=ApplicationResponse)
@@ -33,31 +24,14 @@ def create_application(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ApplicationResponse:
-    if payload.status not in VALID_APPLICATION_STATUSES:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid status")
-
-    now = datetime.now(UTC)
-    application = Application(
-        id=uuid.uuid4(),
-        user_id=current_user.id,
-        company_name=payload.company_name,
-        position_title=payload.position_title,
-        applied_date=payload.applied_date,
-        status=payload.status,
-        created_at=now,
-        updated_at=now,
-    )
-    db.add(application)
-    db.commit()
-    db.refresh(application)
-
+    app = ApplicationService(db).create_application(current_user.id, payload)
     return ApplicationResponse(
-        id=application.id,
-        company_name=application.company_name,
-        position_title=application.position_title,
-        applied_date=application.applied_date,
-        status=application.status,
-        created_at=application.created_at,
+        id=app.id,
+        company_name=app.company_name,
+        position_title=app.position_title,
+        applied_date=app.applied_date,
+        status=app.status,
+        created_at=app.created_at,
     )
 
 
@@ -66,10 +40,7 @@ def list_applications(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> list[ApplicationResponse]:
-    rows = db.execute(
-        select(Application).where(Application.user_id == current_user.id).order_by(Application.created_at.desc())
-    ).scalars()
-
+    rows = ApplicationService(db).list_applications(current_user.id)
     return [
         ApplicationResponse(
             id=row.id,
@@ -90,30 +61,7 @@ def update_application(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> ApplicationResponse:
-    row = db.execute(
-        select(Application).where(Application.id == application_id, Application.user_id == current_user.id)
-    ).scalar_one_or_none()
-
-    if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
-
-    if payload.status is not None and payload.status not in VALID_APPLICATION_STATUSES:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid status")
-
-    if payload.company_name is not None:
-        row.company_name = payload.company_name
-    if payload.position_title is not None:
-        row.position_title = payload.position_title
-    if payload.applied_date is not None:
-        row.applied_date = payload.applied_date
-    if payload.status is not None:
-        row.status = payload.status
-    row.updated_at = datetime.now(UTC)
-
-    db.add(row)
-    db.commit()
-    db.refresh(row)
-
+    row = ApplicationService(db).update_application(current_user.id, application_id, payload)
     return ApplicationResponse(
         id=row.id,
         company_name=row.company_name,
@@ -124,27 +72,12 @@ def update_application(
     )
 
 
-@router.post("/{application_id}/notes")
+@router.post("/{application_id}/notes", response_model=MessageResponse)
 def add_application_note(
     application_id: uuid.UUID,
     payload: ApplicationNoteRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> dict[str, str]:
-    row = db.execute(
-        select(Application).where(Application.id == application_id, Application.user_id == current_user.id)
-    ).scalar_one_or_none()
-
-    if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Application not found")
-
-    note = ApplicationNote(
-        id=uuid.uuid4(),
-        application_id=application_id,
-        note=payload.note,
-        created_at=datetime.now(UTC),
-    )
-    db.add(note)
-    db.commit()
-
-    return {"message": "Note added"}
+) -> MessageResponse:
+    ApplicationService(db).add_note(current_user.id, application_id, payload.note)
+    return MessageResponse(message="Note added")
