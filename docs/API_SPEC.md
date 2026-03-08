@@ -14,6 +14,7 @@ Auth: Bearer JWT (Google OAuth session -> internal JWT)
 - `GET /resumes/{resume_id}` -> detail with versions
 - `PATCH /resumes/{resume_id}` -> metadata update
 - `POST /resumes/{resume_id}/versions/{version_id}/compile` -> queue PDF compile
+- Compile response shape: `{ id, status, failure_reason, created_at, updated_at }`
 
 ## Job Description + Tailoring
 - `POST /job-descriptions` -> create JD from text/url
@@ -34,6 +35,7 @@ Auth: Bearer JWT (Google OAuth session -> internal JWT)
 ## Drive Export
 - `POST /drive/exports` -> queue export of specific PDF
 - `GET /drive/exports/{export_id}` -> status + share URL
+- Export response shape: `{ id, resume_version_id, status, failure_reason, drive_file_id, drive_share_url, exported_at, created_at }`
 
 ## Status Values
 - Application status: `NOT_APPLIED | APPLIED | SCREENING | INTERVIEW | OFFER | REJECTED`

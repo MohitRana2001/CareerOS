@@ -26,6 +26,8 @@ alembic -c alembic.ini upgrade head
 Copy `.env.example` to `.env` and update values as needed.
 - `GOOGLE_CLIENT_ID` is required for secure Google token verification.
 - `GEMINI_API_KEY` is required for tailoring worker execution.
+- `STORAGE_PUBLIC_BASE_URL` controls generated upload/PDF URLs.
+- `DRIVE_SHARE_BASE_URL` controls generated Drive share links.
 - `ALLOW_DEV_AUTH_HEADER` should be `false` outside local development.
 
 ## Next Implementation Targets

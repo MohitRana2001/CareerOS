@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -7,20 +8,28 @@ from app.db import get_db
 from app.dependencies import get_current_user
 from app.models import User
 from app.schemas import (
-    MessageResponse,
+    ExportStatus,
+    JobStatusResponse,
     ResumeCreateRequest,
+    ResumePatchRequest,
     ResumeResponse,
     ResumeVersionCreateRequest,
     ResumeVersionResponse,
+    UploadUrlResponse,
 )
 from app.services.resume_service import ResumeService
 
 router = APIRouter()
 
 
-@router.post("/upload-url", response_model=MessageResponse)
-def create_upload_url(_: User = Depends(get_current_user)) -> MessageResponse:
-    return MessageResponse(message="TODO: signed upload URL")
+@router.post("/upload-url", response_model=UploadUrlResponse)
+def create_upload_url(_: User = Depends(get_current_user)) -> UploadUrlResponse:
+    upload_id = uuid.uuid4().hex
+    return UploadUrlResponse(
+        upload_url=f"https://upload.example.com/put/{upload_id}",
+        file_url=f"https://storage.example.com/careeros/uploads/{upload_id}.pdf",
+        expires_in_seconds=900,
+    )
 
 
 @router.post("", response_model=ResumeResponse)
@@ -138,11 +147,36 @@ def get_resume_version(
     )
 
 
-@router.patch("/{resume_id}", response_model=MessageResponse)
-def patch_resume(resume_id: str) -> MessageResponse:
-    return MessageResponse(message=f"TODO: update resume {resume_id}")
+@router.patch("/{resume_id}", response_model=ResumeResponse)
+def patch_resume(
+    resume_id: uuid.UUID,
+    payload: ResumePatchRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ResumeResponse:
+    resume = ResumeService(db).patch_resume(current_user.id, resume_id, payload)
+    return ResumeResponse(
+        id=resume.id,
+        source_file_url=resume.source_file_url,
+        source_file_type=resume.source_file_type,
+        canonical_json=resume.canonical_json,
+        created_at=resume.created_at,
+    )
 
 
-@router.post("/{resume_id}/versions/{version_id}/compile", response_model=MessageResponse)
-def compile_resume(resume_id: str, version_id: str) -> MessageResponse:
-    return MessageResponse(message=f"TODO: compile resume {resume_id} version {version_id}")
+@router.post("/{resume_id}/versions/{version_id}/compile", response_model=JobStatusResponse)
+def compile_resume(
+    resume_id: uuid.UUID,
+    version_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> JobStatusResponse:
+    version = ResumeService(db).queue_compile(current_user.id, resume_id, version_id)
+    now = datetime.now(UTC)
+    return JobStatusResponse(
+        id=version.id,
+        status=ExportStatus.RUNNING,
+        failure_reason=None,
+        created_at=version.created_at,
+        updated_at=now,
+    )

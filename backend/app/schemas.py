@@ -31,6 +31,13 @@ class RunStatus(StrEnum):
     FAILED = "FAILED"
 
 
+class ExportStatus(StrEnum):
+    PENDING = "PENDING"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+
+
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -301,3 +308,47 @@ class ApplicationNoteRequest(StrictModel):
 
 class MessageResponse(StrictModel):
     message: str
+
+
+class UploadUrlResponse(StrictModel):
+    upload_url: str
+    file_url: str
+    expires_in_seconds: int
+
+
+class ResumePatchRequest(StrictModel):
+    source_file_url: str | None = Field(default=None, max_length=2048)
+    canonical_json: dict | None = None
+
+
+class JobStatusResponse(StrictModel):
+    id: uuid.UUID
+    status: ExportStatus
+    failure_reason: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AtsScoreResponse(StrictModel):
+    score: int
+    breakdown: dict
+
+
+class SkillsGapResponse(StrictModel):
+    critical_missing: list[str]
+    nice_to_have_missing: list[str]
+
+
+class DriveExportCreateRequest(StrictModel):
+    resume_version_id: uuid.UUID
+
+
+class DriveExportResponse(StrictModel):
+    id: uuid.UUID
+    resume_version_id: uuid.UUID
+    status: ExportStatus
+    failure_reason: str | None
+    drive_file_id: str | None
+    drive_share_url: str | None
+    exported_at: datetime | None
+    created_at: datetime

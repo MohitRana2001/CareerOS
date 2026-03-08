@@ -1,19 +1,26 @@
-# Frontend (Next.js) - Build Targets
+# Frontend (Next.js + shadcn-style scaffold)
 
-## Required Screens (Phase 1)
-1. Login (Google OAuth)
-2. Resume upload + base resume editor (Monaco for LaTeX)
-3. JD input + tailor run progress
-4. ATS/skills-gap result view
-5. Dashboard table with filters and status updates
-6. Application tracker CRUD
+## Setup
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## Suggested Routes
+## Environment
+Create `.env.local`:
+
+```bash
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+```
+
+## Routes
 - `/login`
 - `/dashboard`
 - `/resumes/[id]`
-- `/resumes/[id]/versions/[versionId]`
+- `/tailor-runs/[runId]`
 - `/applications`
 
-## API Integration
-Use `/api/v1` endpoints defined in `../docs/API_SPEC.md`.
+## Notes
+- Uses local `X-Dev-User-Email` header from login page for development.
+- API client types are in `src/lib/types.ts`.

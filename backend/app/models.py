@@ -123,3 +123,19 @@ class ApplicationNote(Base):
     application_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("applications.id", ondelete="CASCADE"), nullable=False)
     note: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class DriveExport(Base):
+    __tablename__ = "drive_exports"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    resume_version_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("resume_versions.id", ondelete="CASCADE"), nullable=False
+    )
+    drive_file_id: Mapped[str | None] = mapped_column(Text)
+    drive_share_url: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    failure_reason: Mapped[str | None] = mapped_column(Text)
+    exported_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

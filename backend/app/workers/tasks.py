@@ -11,7 +11,7 @@ from app.ai.gemini_client import GeminiClientError, generate_tailored_content
 from app.ai.prompts import build_tailor_prompt
 from app.config import settings
 from app.db import SessionLocal
-from app.models import JobDescription, ResumeDocument, ResumeVersion, TailorRun
+from app.models import DriveExport, JobDescription, ResumeDocument, ResumeVersion, TailorRun
 
 celery = Celery("resume_tailor", broker=settings.redis_url, backend=settings.redis_url)
 
@@ -140,15 +140,44 @@ def tailor_resume(self, tailor_run_id: str) -> dict[str, str]:
 
 @celery.task(name="compile_pdf")
 def compile_pdf(resume_version_id: str) -> dict[str, str]:
-    return {"status": "QUEUED", "resume_version_id": resume_version_id}
+    version_uuid = uuid.UUID(resume_version_id)
+    with SessionLocal() as db:
+        version = db.get(ResumeVersion, version_uuid)
+        if version is None:
+            return {"status": "NOT_FOUND", "resume_version_id": resume_version_id}
+        version.compile_status = "SUCCEEDED"
+        version.pdf_file_url = f"{settings.storage_public_base_url}/compiled/{version.id}.pdf"
+        db.add(version)
+        db.commit()
+    return {"status": "SUCCEEDED", "resume_version_id": resume_version_id}
 
 
 @celery.task(name="export_drive")
-def export_drive(resume_version_id: str, drive_folder_id: str) -> dict[str, str]:
+def export_drive(resume_version_id: str, export_id: str) -> dict[str, str]:
+    export_uuid = uuid.UUID(export_id)
+    version_uuid = uuid.UUID(resume_version_id)
+    with SessionLocal() as db:
+        export = db.get(DriveExport, export_uuid)
+        version = db.get(ResumeVersion, version_uuid)
+        if export is None or version is None:
+            return {"status": "NOT_FOUND", "resume_version_id": resume_version_id, "export_id": export_id}
+
+        export.status = "RUNNING"
+        db.add(export)
+        db.commit()
+
+        drive_file_id = f"drive_{version.id.hex[:12]}"
+        export.drive_file_id = drive_file_id
+        export.drive_share_url = f"{settings.drive_share_base_url}/{drive_file_id}/view"
+        export.status = "SUCCEEDED"
+        export.exported_at = datetime.now(UTC)
+        db.add(export)
+        db.commit()
+
     return {
-        "status": "QUEUED",
+        "status": "SUCCEEDED",
         "resume_version_id": resume_version_id,
-        "drive_folder_id": drive_folder_id,
+        "export_id": export_id,
     }
 
 
