@@ -8,8 +8,18 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
+## Tooling
+```bash
+ruff check .
+ruff format .
+pytest
+```
+
 ## Database
 Apply `db/schema.sql` to a PostgreSQL instance named `resume_tailor`.
+
+## Environment
+Copy `.env.example` to `.env` and update values as needed.
 
 ## Next Implementation Targets
 1. Auth middleware + user context

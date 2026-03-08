@@ -32,3 +32,11 @@ This package is the implementation-ready baseline for MVP (Phase 1).
 2. Run PostgreSQL and apply `backend/db/schema.sql`.
 3. Implement endpoint logic in router stubs.
 4. Stand up Next.js frontend with auth and dashboard flows.
+
+## Local Dev Hygiene
+- Start infra: `make up`
+- Install backend deps: `make backend-install`
+- Run API: `make backend-run`
+- Lint: `make backend-lint`
+- Format: `make backend-format`
+- Test: `make backend-test`
