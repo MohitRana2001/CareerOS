@@ -73,6 +73,20 @@ class ResumeResponse(StrictModel):
 
 
 class ResumeVersionCreateRequest(StrictModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "based_on_version_id": "f40fd2b1-6dfe-4f3e-a0f8-9dba238f67e8",
+                    "job_description_id": "8f4f8643-6cc7-49e6-8c43-06f3322b7d2d",
+                    "latex_source": "\\\\item Built FastAPI services with PostgreSQL and Redis for scalable APIs",
+                    "created_by": "SYSTEM",
+                }
+            ]
+        },
+    )
+
     based_on_version_id: uuid.UUID | None = None
     job_description_id: uuid.UUID | None = None
     latex_source: str = Field(min_length=1)
@@ -80,6 +94,25 @@ class ResumeVersionCreateRequest(StrictModel):
 
 
 class ResumeVersionResponse(StrictModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": "4f3390ac-dad0-4444-a4a5-49b03d8e86c5",
+                    "resume_document_id": "c67a4eb8-6481-4685-a364-76cdaf6b552f",
+                    "version_no": 3,
+                    "based_on_version_id": "f40fd2b1-6dfe-4f3e-a0f8-9dba238f67e8",
+                    "job_description_id": "8f4f8643-6cc7-49e6-8c43-06f3322b7d2d",
+                    "latex_source": "\\\\item Designed distributed systems...",
+                    "compile_status": "PENDING",
+                    "created_by": "SYSTEM",
+                    "created_at": "2026-03-09T10:30:00Z",
+                }
+            ]
+        },
+    )
+
     id: uuid.UUID
     resume_document_id: uuid.UUID
     version_no: int
@@ -92,6 +125,20 @@ class ResumeVersionResponse(StrictModel):
 
 
 class JobDescriptionCreateRequest(StrictModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "company_name": "Acme Inc",
+                    "position_title": "Backend Engineer",
+                    "source_url": "https://jobs.acme.com/backend-engineer",
+                    "raw_text": "We are looking for strong Python, FastAPI, PostgreSQL, Redis, Docker, and AWS skills.",
+                }
+            ]
+        },
+    )
+
     company_name: str | None = Field(default=None, max_length=256)
     position_title: str | None = Field(default=None, max_length=256)
     source_url: str | None = Field(default=None, max_length=2048)
@@ -99,6 +146,23 @@ class JobDescriptionCreateRequest(StrictModel):
 
 
 class JobDescriptionResponse(StrictModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": "8f4f8643-6cc7-49e6-8c43-06f3322b7d2d",
+                    "company_name": "Acme Inc",
+                    "position_title": "Backend Engineer",
+                    "source_url": "https://jobs.acme.com/backend-engineer",
+                    "raw_text": "We are looking for strong Python...",
+                    "extracted_requirements": {"keywords": ["python", "fastapi", "postgresql", "redis", "docker", "aws"]},
+                    "created_at": "2026-03-09T10:20:00Z",
+                }
+            ]
+        },
+    )
+
     id: uuid.UUID
     company_name: str | None
     position_title: str | None
@@ -109,6 +173,21 @@ class JobDescriptionResponse(StrictModel):
 
 
 class TailorRunCreateRequest(StrictModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "resume_document_id": "c67a4eb8-6481-4685-a364-76cdaf6b552f",
+                    "job_description_id": "8f4f8643-6cc7-49e6-8c43-06f3322b7d2d",
+                    "idempotency_key": "acme-backend-20260309",
+                    "model_name": "gemini-2.5-pro",
+                    "prompt_version": "v1",
+                }
+            ]
+        },
+    )
+
     resume_document_id: uuid.UUID
     job_description_id: uuid.UUID
     idempotency_key: str = Field(min_length=6, max_length=128)
@@ -117,6 +196,27 @@ class TailorRunCreateRequest(StrictModel):
 
 
 class TailorRunResponse(StrictModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "id": "a662fced-56b5-4888-8f8f-1f4f4839f9a2",
+                    "resume_document_id": "c67a4eb8-6481-4685-a364-76cdaf6b552f",
+                    "job_description_id": "8f4f8643-6cc7-49e6-8c43-06f3322b7d2d",
+                    "status": "RUNNING",
+                    "idempotency_key": "acme-backend-20260309",
+                    "model_name": "gemini-2.5-pro",
+                    "prompt_version": "v1",
+                    "failure_stage": None,
+                    "failure_reason": None,
+                    "created_at": "2026-03-09T10:31:00Z",
+                    "updated_at": "2026-03-09T10:31:10Z",
+                }
+            ]
+        },
+    )
+
     id: uuid.UUID
     resume_document_id: uuid.UUID
     job_description_id: uuid.UUID
