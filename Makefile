@@ -1,4 +1,4 @@
-.PHONY: up down backend-install backend-run backend-test backend-lint backend-format
+.PHONY: up down backend-install backend-run backend-test backend-lint backend-format backend-migrate
 
 up:
 	docker compose up -d
@@ -20,3 +20,6 @@ backend-lint:
 
 backend-format:
 	cd backend && . .venv/bin/activate && ruff format .
+
+backend-migrate:
+	cd backend && . .venv/bin/activate && alembic -c alembic.ini upgrade head

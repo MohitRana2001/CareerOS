@@ -36,6 +36,7 @@ This package is the implementation-ready baseline for MVP (Phase 1).
 ## Local Dev Hygiene
 - Start infra: `make up`
 - Install backend deps: `make backend-install`
+- Run migrations: `make backend-migrate`
 - Run API: `make backend-run`
 - Lint: `make backend-lint`
 - Format: `make backend-format`

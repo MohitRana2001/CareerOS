@@ -17,6 +17,10 @@ pytest
 
 ## Database
 Apply `db/schema.sql` to a PostgreSQL instance named `resume_tailor`.
+Or run Alembic for Week 1 core tables:
+```bash
+alembic -c alembic.ini upgrade head
+```
 
 ## Environment
 Copy `.env.example` to `.env` and update values as needed.
