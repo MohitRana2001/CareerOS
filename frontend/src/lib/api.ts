@@ -1,10 +1,15 @@
 import type {
   Application,
+  ApplicationStatus,
+  AtsScore,
   JobDescription,
+  JobStatus,
   Resume,
   ResumeVersion,
+  SkillsGap,
   TailorRun,
   TailorRunAnalytics,
+  UploadUrlResponse,
 } from "@/lib/types";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
@@ -39,13 +44,26 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   me: () => request<{ id: string; email: string; full_name: string | null }>("/auth/me"),
 
+  createUploadUrl: () => request<UploadUrlResponse>("/resumes/upload-url", { method: "POST" }),
   listResumes: () => request<Resume[]>("/resumes"),
   createResume: (payload: { source_file_url?: string; source_file_type: "pdf" | "docx" }) =>
     request<Resume>("/resumes", { method: "POST", body: JSON.stringify(payload) }),
   getResume: (resumeId: string) => request<Resume>(`/resumes/${resumeId}`),
   listResumeVersions: (resumeId: string) => request<ResumeVersion[]>(`/resumes/${resumeId}/versions`),
+  createResumeVersion: (
+    resumeId: string,
+    payload: {
+      based_on_version_id?: string;
+      job_description_id?: string;
+      latex_source: string;
+      created_by?: "SYSTEM" | "USER";
+    }
+  ) => request<ResumeVersion>(`/resumes/${resumeId}/versions`, { method: "POST", body: JSON.stringify(payload) }),
   compileResumeVersion: (resumeId: string, versionId: string) =>
-    request<{ id: string; status: string }>(`/resumes/${resumeId}/versions/${versionId}/compile`, { method: "POST" }),
+    request<JobStatus>(`/resumes/${resumeId}/versions/${versionId}/compile`, { method: "POST" }),
+  getAts: (resumeId: string, versionId: string) => request<AtsScore>(`/resumes/${resumeId}/versions/${versionId}/ats`),
+  getSkillsGap: (resumeId: string, versionId: string) =>
+    request<SkillsGap>(`/resumes/${resumeId}/versions/${versionId}/skills-gap`),
 
   createJobDescription: (payload: {
     company_name?: string;
@@ -69,7 +87,16 @@ export const api = {
   createApplication: (payload: {
     company_name: string;
     position_title: string;
-    status?: string;
+    status?: ApplicationStatus;
     applied_date?: string;
   }) => request<Application>("/applications", { method: "POST", body: JSON.stringify(payload) }),
+  updateApplication: (
+    applicationId: string,
+    payload: {
+      company_name?: string;
+      position_title?: string;
+      status?: ApplicationStatus;
+      applied_date?: string;
+    }
+  ) => request<Application>(`/applications/${applicationId}`, { method: "PATCH", body: JSON.stringify(payload) }),
 };

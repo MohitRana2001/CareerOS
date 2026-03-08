@@ -3,9 +3,9 @@ import { BriefcaseBusiness, FileUser, LayoutDashboard, Sparkles } from "lucide-r
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/resumes", label: "Resumes", icon: FileUser },
+  { href: "/tailor-runs", label: "Tailoring", icon: Sparkles },
   { href: "/applications", label: "Applications", icon: BriefcaseBusiness },
-  { href: "/resumes/demo", label: "Resumes", icon: FileUser },
-  { href: "/tailor-runs/demo", label: "Tailor Run", icon: Sparkles },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {

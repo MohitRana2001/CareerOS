@@ -1,4 +1,5 @@
 export type RunStatus = "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED";
+export type ApplicationStatus = "NOT_APPLIED" | "APPLIED" | "SCREENING" | "INTERVIEW" | "OFFER" | "REJECTED";
 
 export type Resume = {
   id: string;
@@ -6,6 +7,12 @@ export type Resume = {
   source_file_type: "pdf" | "docx";
   canonical_json: Record<string, unknown> | null;
   created_at: string;
+};
+
+export type UploadUrlResponse = {
+  upload_url: string;
+  file_url: string;
+  expires_in_seconds: number;
 };
 
 export type ResumeVersion = {
@@ -18,6 +25,14 @@ export type ResumeVersion = {
   compile_status: RunStatus;
   created_by: "SYSTEM" | "USER";
   created_at: string;
+};
+
+export type JobStatus = {
+  id: string;
+  status: RunStatus;
+  failure_reason: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type JobDescription = {
@@ -56,11 +71,21 @@ export type TailorRunAnalytics = {
   latency_ms: number | null;
 };
 
+export type AtsScore = {
+  score: number;
+  breakdown: Record<string, number>;
+};
+
+export type SkillsGap = {
+  critical_missing: string[];
+  nice_to_have_missing: string[];
+};
+
 export type Application = {
   id: string;
   company_name: string;
   position_title: string;
   applied_date: string | null;
-  status: "NOT_APPLIED" | "APPLIED" | "SCREENING" | "INTERVIEW" | "OFFER" | "REJECTED";
+  status: ApplicationStatus;
   created_at: string;
 };
