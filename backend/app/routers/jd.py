@@ -9,6 +9,7 @@ from app.models import User
 from app.schemas import (
     JobDescriptionCreateRequest,
     JobDescriptionResponse,
+    TailorRunAnalyticsResponse,
     TailorRunCreateRequest,
     TailorRunResponse,
 )
@@ -102,3 +103,12 @@ def get_tailor_run(
         created_at=run.created_at,
         updated_at=run.updated_at,
     )
+
+
+@router.get("/tailor-runs/{run_id}/analytics", response_model=TailorRunAnalyticsResponse)
+def get_tailor_run_analytics(
+    run_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> TailorRunAnalyticsResponse:
+    return TailorService(db).get_run_analytics(current_user.id, run_id)

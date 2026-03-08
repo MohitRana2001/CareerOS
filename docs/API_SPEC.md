@@ -19,6 +19,7 @@ Auth: Bearer JWT (Google OAuth session -> internal JWT)
 - `POST /job-descriptions` -> create JD from text/url
 - `POST /tailor-runs` -> start tailoring run
 - `GET /tailor-runs/{run_id}` -> status/result
+- `GET /tailor-runs/{run_id}/analytics` -> frontend metrics (`alignment_score`, `missing_keywords_count`, `attempts`, `latency_ms`)
 
 ## ATS + Skills Gap
 - `GET /resumes/{resume_id}/versions/{version_id}/ats` -> score + breakdown

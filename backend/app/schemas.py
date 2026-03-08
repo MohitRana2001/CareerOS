@@ -247,6 +247,31 @@ class TailorRunResponse(StrictModel):
     updated_at: datetime
 
 
+class TailorRunAnalyticsResponse(StrictModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "run_id": "a662fced-56b5-4888-8f8f-1f4f4839f9a2",
+                    "status": "SUCCEEDED",
+                    "alignment_score": 83,
+                    "missing_keywords_count": 1,
+                    "attempts": 1,
+                    "latency_ms": 2150,
+                }
+            ]
+        },
+    )
+
+    run_id: uuid.UUID
+    status: RunStatus
+    alignment_score: int
+    missing_keywords_count: int
+    attempts: int
+    latency_ms: int | None
+
+
 class ApplicationCreateRequest(StrictModel):
     company_name: str = Field(min_length=1, max_length=256)
     position_title: str = Field(min_length=1, max_length=256)

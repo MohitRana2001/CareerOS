@@ -105,3 +105,10 @@ def test_tailor_run_orchestration_and_idempotency(client: TestClient, monkeypatc
     get_response = client.get(f"/api/v1/tailor-runs/{run['id']}", headers=headers)
     assert get_response.status_code == 200
     assert get_response.json()["id"] == run["id"]
+
+    analytics_response = client.get(f"/api/v1/tailor-runs/{run['id']}/analytics", headers=headers)
+    assert analytics_response.status_code == 200
+    analytics = analytics_response.json()
+    assert analytics["run_id"] == run["id"]
+    assert analytics["attempts"] == 0
+    assert analytics["alignment_score"] == 0

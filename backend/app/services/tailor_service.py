@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import JobDescription, ResumeDocument, TailorRun
-from app.schemas import RunStatus, TailorRunCreateRequest
+from app.schemas import RunStatus, TailorRunAnalyticsResponse, TailorRunCreateRequest
 from app.workers.tasks import tailor_resume
 
 
@@ -73,6 +73,21 @@ class TailorService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tailor run not found")
         return run
 
+    def get_run_analytics(self, user_id: uuid.UUID, run_id: uuid.UUID) -> TailorRunAnalyticsResponse:
+        run = self.get_run(user_id, run_id)
+        alignment = run.ats_keyword_alignment or {}
+        missing_keywords = alignment.get("missing_keywords") or []
+        trace = run.model_trace_metadata or {}
+
+        return TailorRunAnalyticsResponse(
+            run_id=run.id,
+            status=run.status,
+            alignment_score=int(alignment.get("alignment_score") or 0),
+            missing_keywords_count=len(missing_keywords),
+            attempts=int(run.run_attempt_count or 0),
+            latency_ms=_extract_latency_ms(trace, run.created_at, run.updated_at),
+        )
+
     def _assert_resources_belong_to_user(
         self,
         user_id: uuid.UUID,
@@ -96,3 +111,28 @@ class TailorService:
         ).scalar_one_or_none()
         if jd is None:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job description not found")
+
+
+def _extract_latency_ms(trace: dict, created_at: datetime, updated_at: datetime) -> int | None:
+    started_raw = trace.get("started_at")
+    completed_raw = trace.get("completed_at")
+    if isinstance(started_raw, str) and isinstance(completed_raw, str):
+        started = _parse_iso_datetime(started_raw)
+        completed = _parse_iso_datetime(completed_raw)
+        if started is not None and completed is not None:
+            return max(0, int((completed - started).total_seconds() * 1000))
+
+    if updated_at and created_at:
+        return max(0, int((updated_at - created_at).total_seconds() * 1000))
+    return None
+
+
+def _parse_iso_datetime(value: str) -> datetime | None:
+    normalized = value.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
