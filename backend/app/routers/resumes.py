@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session
 from app.db import get_db
 from app.dependencies import get_current_user
 from app.models import User
-from app.schemas import MessageResponse, ResumeCreateRequest, ResumeResponse
+from app.schemas import (
+    MessageResponse,
+    ResumeCreateRequest,
+    ResumeResponse,
+    ResumeVersionCreateRequest,
+    ResumeVersionResponse,
+)
 from app.services.resume_service import ResumeService
 
 router = APIRouter()
@@ -63,6 +69,71 @@ def get_resume(
         source_file_url=row.source_file_url,
         source_file_type=row.source_file_type,
         canonical_json=row.canonical_json,
+        created_at=row.created_at,
+    )
+
+
+@router.post("/{resume_id}/versions", response_model=ResumeVersionResponse)
+def create_resume_version(
+    resume_id: uuid.UUID,
+    payload: ResumeVersionCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ResumeVersionResponse:
+    version = ResumeService(db).create_version(current_user.id, resume_id, payload)
+    return ResumeVersionResponse(
+        id=version.id,
+        resume_document_id=version.resume_document_id,
+        version_no=version.version_no,
+        based_on_version_id=version.based_on_version_id,
+        job_description_id=version.job_description_id,
+        latex_source=version.latex_source,
+        compile_status=version.compile_status,
+        created_by=version.created_by,
+        created_at=version.created_at,
+    )
+
+
+@router.get("/{resume_id}/versions", response_model=list[ResumeVersionResponse])
+def list_resume_versions(
+    resume_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[ResumeVersionResponse]:
+    rows = ResumeService(db).list_versions(current_user.id, resume_id)
+    return [
+        ResumeVersionResponse(
+            id=row.id,
+            resume_document_id=row.resume_document_id,
+            version_no=row.version_no,
+            based_on_version_id=row.based_on_version_id,
+            job_description_id=row.job_description_id,
+            latex_source=row.latex_source,
+            compile_status=row.compile_status,
+            created_by=row.created_by,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
+
+
+@router.get("/{resume_id}/versions/{version_id}", response_model=ResumeVersionResponse)
+def get_resume_version(
+    resume_id: uuid.UUID,
+    version_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> ResumeVersionResponse:
+    row = ResumeService(db).get_version(current_user.id, resume_id, version_id)
+    return ResumeVersionResponse(
+        id=row.id,
+        resume_document_id=row.resume_document_id,
+        version_no=row.version_no,
+        based_on_version_id=row.based_on_version_id,
+        job_description_id=row.job_description_id,
+        latex_source=row.latex_source,
+        compile_status=row.compile_status,
+        created_by=row.created_by,
         created_at=row.created_at,
     )
 
