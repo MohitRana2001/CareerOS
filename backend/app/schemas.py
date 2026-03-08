@@ -1,0 +1,9 @@
+from pydantic import BaseModel
+
+
+class OkResponse(BaseModel):
+    status: str = "ok"
+
+
+class IdResponse(BaseModel):
+    id: str
